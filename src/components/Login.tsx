@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import type { FormEvent } from "react";
+import { useState, useEffect } from "react";
 import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -15,11 +16,28 @@ import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 
+import axios from "axios";
+
+const fetchCaptcha = async (): Promise<string> => {
+  let captchaUrl = "";
+  try {
+    const res = await axios.get<Blob>("/api/captcha", {
+      responseType: "blob",
+    });
+
+    captchaUrl = URL.createObjectURL(res.data);
+  } catch (e) {
+    console.log(e);
+  }
+
+  return captchaUrl;
+};
+
 // TODO remove, this demo shouldn't need to reset the theme.
 const defaultTheme = createTheme();
 
 export default function LogIn() {
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     console.log({
@@ -27,6 +45,14 @@ export default function LogIn() {
       password: data.get("password"),
     });
   };
+
+  const [captcha, setCaptcha] = useState<string>("");
+
+  useEffect(() => {
+    if (captcha === "") {
+      fetchCaptcha().then((captcha) => setCaptcha(captcha));
+    }
+  }, []);
 
   return (
     <ThemeProvider theme={defaultTheme}>
@@ -44,7 +70,7 @@ export default function LogIn() {
             <LockOutlinedIcon />
           </Avatar>
           <Typography component="h1" variant="h5">
-            Log in
+            モバイルSuica ログイン
           </Typography>
           <Box
             component="form"
@@ -76,6 +102,9 @@ export default function LogIn() {
               control={<Checkbox value="remember" color="primary" />}
               label="Remember me"
             />
+            <Box>
+              <img src={captcha} />
+            </Box>
             <Button
               type="submit"
               fullWidth
