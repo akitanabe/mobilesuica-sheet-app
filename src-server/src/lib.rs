@@ -1,7 +1,79 @@
+pub mod library;
+
+use std::collections::HashMap;
+
 use bytes::Bytes;
+
 use scraper::{Html, Selector};
 
-const BASE_URL: &str = "https://www.mobilesuica.com/";
+use serde::{Deserialize, Serialize};
+
+type Cookies = HashMap<String, String>;
+pub const BASE_URL: &str = "https://www.mobilesuica.com/";
+
+#[allow(non_snake_case, dead_code)]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MobilesuicaFormParams {
+    __EVENTARGUMENT: String,
+    __EVENTTARGET: String,
+    __VIEWSTATE: String,
+    __VIEWSTATEENCRYPTED: String,
+    __VIEWSTATEGENERATOR: String,
+    baseVariable: String,
+    baseVarLogoutBtn: String,
+    LOGIN: String,
+    MailAddress: String,
+    Password: String,
+    WebCaptcha1__editor: String,
+    WebCaptcha1__editor_clientState: String,
+    WebCaptcha1_clientState: String,
+}
+
+impl MobilesuicaFormParams {
+    fn new(html: &str) -> Self {
+        let document = Html::parse_document(html);
+
+        let get_input_value = |name: &str| {
+            let selector = Selector::parse(&format!("input[name='{}']", name)).unwrap();
+
+            let element = &document.select(&selector).next();
+
+            match element {
+                Some(element) => element.value().attr("value").unwrap_or(""),
+                None => "",
+            }
+            .to_string()
+        };
+
+        MobilesuicaFormParams {
+            __EVENTARGUMENT: get_input_value("__EVENTARGUMENT"),
+            __EVENTTARGET: get_input_value("__EVENTTARGET"),
+            __VIEWSTATE: get_input_value("__VIEWSTATE"),
+            __VIEWSTATEENCRYPTED: get_input_value("__VIEWSTATEENCRYPTED"),
+            __VIEWSTATEGENERATOR: get_input_value("__VIEWSTATEGENERATOR"),
+            baseVariable: String::new(),
+            baseVarLogoutBtn: String::from("off"),
+            LOGIN: String::from("ログイン"),
+            MailAddress: String::new(),
+            Password: String::new(),
+            WebCaptcha1__editor: String::new(),
+            WebCaptcha1__editor_clientState: String::new(),
+            WebCaptcha1_clientState: String::from("[[[[null]],[],[]],[{},[]],null]"),
+        }
+    }
+
+    fn set_captcha(&mut self, captcha: &str) {
+        self.WebCaptcha1__editor = String::from(captcha);
+    }
+
+    fn set_mail_address(&mut self, mail_address: &str) {
+        self.MailAddress = String::from(mail_address);
+    }
+
+    fn set_password(&mut self, password: &str) {
+        self.Password = String::from(password);
+    }
+}
 
 pub async fn get_client() -> Result<reqwest::Client, reqwest::Error> {
     let ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36";
@@ -28,14 +100,25 @@ fn get_captcha_imageurl(html: &str) -> String {
     String::from(captcha_url)
 }
 
-pub async fn fetch_captcha_url(client: &reqwest::Client) -> Result<String, reqwest::Error> {
+fn get_cookies(response: &reqwest::Response) -> Cookies {
+    response
+        .cookies()
+        .map(|cookie| (cookie.name().to_string(), cookie.value().to_string()))
+        .collect::<HashMap<_, _>>()
+}
+
+pub async fn fetch_mobilesuica(
+    client: &reqwest::Client,
+) -> Result<(MobilesuicaFormParams, Cookies, String), reqwest::Error> {
     let response = client.get(BASE_URL).send().await?;
+    let cookies = get_cookies(&response);
 
     let html = response.text_with_charset("utf-8").await?;
+    let mobilesuica_form_params = MobilesuicaFormParams::new(&html);
 
     let captcha_url = get_captcha_imageurl(&html);
 
-    Ok(captcha_url)
+    Ok((mobilesuica_form_params, cookies, captcha_url))
 }
 
 pub async fn download_captcha(
