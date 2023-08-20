@@ -1,18 +1,18 @@
-pub mod library;
-
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use bytes::Bytes;
 
+use reqwest::cookie;
 use scraper::{Html, Selector};
 
 use serde::{Deserialize, Serialize};
+use url::Url;
 
-type Cookies = HashMap<String, String>;
+pub type MobilesuicaCookies = HashMap<String, String>;
 pub const BASE_URL: &str = "https://www.mobilesuica.com/";
 
 #[allow(non_snake_case, dead_code)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct MobilesuicaFormParams {
     __EVENTARGUMENT: String,
     __EVENTTARGET: String,
@@ -75,11 +75,20 @@ impl MobilesuicaFormParams {
     }
 }
 
-pub async fn get_client() -> Result<reqwest::Client, reqwest::Error> {
+pub async fn get_client(cookies: MobilesuicaCookies) -> Result<reqwest::Client, reqwest::Error> {
+    let cookie_store = Arc::new(cookie::Jar::default());
+
+    for (name, value) in cookies {
+        cookie_store.add_cookie_str(
+            &format!("{}={}", name, value),
+            &Url::parse(BASE_URL).unwrap(),
+        );
+    }
+
     let ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36";
     let client = reqwest::Client::builder()
         .user_agent(ua)
-        .cookie_store(true)
+        .cookie_provider(cookie_store)
         .build()?;
 
     Ok(client)
@@ -100,7 +109,7 @@ fn get_captcha_imageurl(html: &str) -> String {
     String::from(captcha_url)
 }
 
-fn get_cookies(response: &reqwest::Response) -> Cookies {
+fn get_cookies(response: &reqwest::Response) -> MobilesuicaCookies {
     response
         .cookies()
         .map(|cookie| (cookie.name().to_string(), cookie.value().to_string()))
@@ -109,7 +118,7 @@ fn get_cookies(response: &reqwest::Response) -> Cookies {
 
 pub async fn fetch_mobilesuica(
     client: &reqwest::Client,
-) -> Result<(MobilesuicaFormParams, Cookies, String), reqwest::Error> {
+) -> Result<(MobilesuicaFormParams, MobilesuicaCookies, String), reqwest::Error> {
     let response = client.get(BASE_URL).send().await?;
     let cookies = get_cookies(&response);
 

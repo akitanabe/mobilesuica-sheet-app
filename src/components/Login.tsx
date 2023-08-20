@@ -1,6 +1,6 @@
 "use client";
 
-import type { FormEvent } from "react";
+import type { Dispatch, FormEvent, SetStateAction } from "react";
 import { useState, useEffect } from "react";
 import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
@@ -18,13 +18,23 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 
 import axios from "axios";
 
-const fetchCaptcha = async (): Promise<string> => {
+type UseStateSessionId = [string, Dispatch<SetStateAction<string>>];
+
+const fetchCaptcha = async ([
+  sessionId,
+  setSessionId,
+]: UseStateSessionId): Promise<string> => {
   let captchaUrl = "";
+
   try {
     const res = await axios.get<Blob>("/api/captcha", {
       responseType: "blob",
+      headers: {
+        "x-session-id": sessionId,
+      },
     });
 
+    setSessionId(res.headers["x-session-id"]);
     captchaUrl = URL.createObjectURL(res.data);
   } catch (e) {
     console.log(e);
@@ -33,24 +43,43 @@ const fetchCaptcha = async (): Promise<string> => {
   return captchaUrl;
 };
 
+const auth = async (sessionId: string) => {
+  try {
+    const res = await axios.get("/api/auth", {
+      headers: {
+        "x-session-id": sessionId,
+      },
+    });
+  } catch (e) {
+    console.log(e);
+  }
+};
+
 // TODO remove, this demo shouldn't need to reset the theme.
 const defaultTheme = createTheme();
 
 export default function LogIn() {
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (
+    event: FormEvent<HTMLFormElement>,
+    sessionId: string
+  ) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     console.log({
       email: data.get("email"),
       password: data.get("password"),
     });
+    auth(sessionId);
   };
 
   const [captcha, setCaptcha] = useState<string>("");
+  const [sessionId, setSessionId] = useState<string>("");
 
   useEffect(() => {
     if (captcha === "") {
-      fetchCaptcha().then((captcha) => setCaptcha(captcha));
+      fetchCaptcha([sessionId, setSessionId]).then((captcha) =>
+        setCaptcha(captcha)
+      );
     }
   }, []);
 
@@ -74,7 +103,7 @@ export default function LogIn() {
           </Typography>
           <Box
             component="form"
-            onSubmit={handleSubmit}
+            onSubmit={(e) => handleSubmit(e, sessionId)}
             noValidate
             sx={{ mt: 1 }}
           >
