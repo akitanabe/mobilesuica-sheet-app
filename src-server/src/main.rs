@@ -1,8 +1,11 @@
-use axum::{middleware, Router};
-mod api;
-mod extension;
+mod controllers;
+mod middleware;
+mod route;
+mod store;
 
-use extension::session::{session_middleware, AppState};
+use axum::{middleware as axum_middleware, Router};
+use middleware::session_middleware;
+use store::AppState;
 
 #[tokio::main]
 async fn main() {
@@ -10,8 +13,8 @@ async fn main() {
     let state = AppState::default();
 
     let app = Router::new()
-        .nest("/api", api::router())
-        .route_layer(middleware::from_fn_with_state(
+        .nest("/api", route::api_router())
+        .route_layer(axum_middleware::from_fn_with_state(
             state.clone(),
             session_middleware,
         ))

@@ -1,0 +1,510 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="ja">
+  <head>
+    <title>JR東日本：モバイルSuica＞ログイン</title>
+    <meta http-equiv="Content-Type" content="text/html;CHARSET=Shift_JIS" />
+    <meta http-equiv="Content-Style-Type" content="text/css" />
+    <meta http-equiv="Content-Script-Type" content="text/javascript" />
+    <!-- スタイルシート設定 -->
+    <link rel="stylesheet" type="text/css" href="/css/base.css" />
+    <link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <style>
+      .tabContents {
+        display: none;
+      }
+
+      .tabContents.active {
+        display: block;
+      }
+    </style>
+    <!-- /スタイルシート設定 -->
+    <script
+      language="javascript"
+      type="text/javascript"
+      src="/js/hf.js"
+    ></script>
+    <script
+      language="javascript"
+      type="text/javascript"
+      src="/js/main.js"
+    ></script>
+    <script
+      language="javascript"
+      type="text/javascript"
+      src="/js/Common.js"
+    ></script>
+    <script
+      language="javascript"
+      type="text/javascript"
+      src="/js/jquery-3.6.0.js"
+    ></script>
+    <script language="javascript">
+      <!--
+      $(function () {
+        $("#select_ul").on("click", "li", function () {
+          $(this).addClass("active").siblings(".active").removeClass("active");
+          var selectContents = $(this).attr("value");
+          $(selectContents)
+            .addClass("active")
+            .siblings(".active")
+            .removeClass("active");
+          return false;
+        });
+      });
+      // -->
+    </script>
+  </head>
+  <body class="loginBox">
+    <!-- メインコンテンツ -->
+
+    <!-- JR東日本共通ヘッダー -->
+    <script language="javascript">
+      <!--
+      header2();
+      // -->
+    </script>
+    <!-- /JR東日本共通ヘッダー -->
+    <!-- モバイルSuica共通タイトル -->
+    <script language="javascript">
+      <!--
+      main2();
+      // -->
+    </script>
+    <script language="javascript">
+      <!--
+      var msg =
+        "ただいまシステムメンテナンス中のため、この機能はご利用いただくことができません。";
+      function ErrorHandle(sender, e) {
+        e.set_cancel(1);
+        alert(msg);
+      }
+      // -->
+    </script>
+    <!-- /モバイルSuica共通タイトル -->
+
+    <div class="loginArea">
+      <div class="wrapper">
+        <ul class="selectBox" id="select_ul">
+          <li class="active" value="#tab_1">
+            <p>モバイルSuicaによるログイン</p>
+          </li>
+          <li value="#tab_2"><p>My JR-EASTによるログイン</p></li>
+        </ul>
+      </div>
+
+      <div class="wrapper440 inputBox tabContents active" id="tab_1">
+        <form
+          method="post"
+          action="ka/lg/LoginForm.aspx?pguid=af60fc73-558f-460c-a2b1-d830c426f307"
+          id="form1"
+          onsubmit="return CheckSubmit()"
+        >
+          <div class="aspNetHidden">
+            <input
+              type="hidden"
+              name="__EVENTTARGET"
+              id="__EVENTTARGET"
+              value=""
+            />
+            <input
+              type="hidden"
+              name="__EVENTARGUMENT"
+              id="__EVENTARGUMENT"
+              value=""
+            />
+            <input
+              type="hidden"
+              name="__VIEWSTATE"
+              id="__VIEWSTATE"
+              value="UVC5XJZwUa57v2fAfXWXy67apj73Ua01sHcynBlD7/8pEoMbC+vpKphizN0ZUa4NQ7z3naiVgssqNh4hZndGVHkAkKAJkK3+5x3SAY79V2WO++eW019o644Vj6bOAximDB7kLjWx9kD8D+gXKQVtpKMwyl3cF/MDa9lQ2Zpe9G+wYHeCdnmw4OH1S9QlWazd3Kb0f7NweDEy7yMaZkP263kMp1uPWwUuljNrnKFQWF4eKWKM4LZKsAEpoOm1lYNr1w4ERsqmAORm7UZPU0BJaYiGeMCxrcnJ/MRtYsjYECYLsUx0JLvfOwHLmu3SN5gwKR+IqLvBo3OtZBS8NyQ1RQTCwkByEvjNWReP0daS86QodpoY"
+            />
+          </div>
+
+          <script type="text/javascript">
+            //<![CDATA[
+            var theForm = document.forms["form1"];
+            if (!theForm) {
+              theForm = document.form1;
+            }
+            function __doPostBack(eventTarget, eventArgument) {
+              if (!theForm.onsubmit || theForm.onsubmit() != false) {
+                theForm.__EVENTTARGET.value = eventTarget;
+                theForm.__EVENTARGUMENT.value = eventArgument;
+                theForm.submit();
+              }
+            }
+            //]]>
+          </script>
+
+          <script
+            src="/WebResource.axd?d=pynGkmcFUV13He1Qd6_TZFkEhQPvZazo7TRTsKae_x4n0uByOT38wNVzgVUSJUTQAf_qtA2&amp;t=637814977746327080"
+            type="text/javascript"
+          ></script>
+
+          <link
+            href="ig_res/Trendy/ig_shared.css"
+            type="text/css"
+            rel="stylesheet"
+          />
+          <link
+            href="ig_res/Trendy/ig_captcha.css"
+            type="text/css"
+            rel="stylesheet"
+          />
+          <link
+            href="ig_res/Trendy/ig_texteditor.css"
+            type="text/css"
+            rel="stylesheet"
+          />
+          <script
+            src="/ScriptResource.axd?d=Rn4K8XE2utBBS9_0Wv12sAbehpWfl8x51KaYeV_wffct-xCsQLw6CopBCuJKPMcwict9-aCKpDPppxEwO1BT2t_Oo78F6piXimnWRymC4UkHghCktcquT9emn9PX4zDv3ZUm9eo6wrUfy1LqnaGnmSinTZ41&amp;t=49337fe8"
+            type="text/javascript"
+          ></script>
+          <script
+            src="/ScriptResource.axd?d=8OlNtQ9sVgQJ61J8_gRDeeA_-HPVdPybKYPGVxS9HRR9QquOc1uLLykNRiIj3nFoMVa9taqV0H8jV5ISzfnHL0llfB2N2L-eu48TzoZndOgOqzsoDE5iuCFoougRUJOrca2xJu-GrUGm_XZH-nXYDn9-Lbc1&amp;t=49337fe8"
+            type="text/javascript"
+          ></script>
+          <script
+            src="/ScriptResource.axd?d=9c2bJ371nVfly5A4ZRsoujKCHqGBR-bfRueqDbOsU11g_mXkR5By7nMF4tUmLiOZDlD5s-W0R5WyDPi0kLoCu3pT3RvPvMsnPuYBapb5yQKr5u-yTitBM4zQhJIylanpzv33lhBm5mn_DobDeDFQbGs_2z41&amp;t=ffffffff9ce48191"
+            type="text/javascript"
+          ></script>
+          <script
+            src="/ScriptResource.axd?d=ERO6CWwy-HW-U-OBIITwzUlVZw3GIKT1KoDO95CjuzCdg2e5RQQa8t0x5kjxFGHZEhkgxNkSDdOl3SX2uGdmCL5ekj-UXQ0cIdvQ8_UrFMSyL6P-aYz4gmPD_VtaQvlndNKgczfVxA38HsXhwgXgeWoWysb3JRYfxm8Q9sJZgUUPoqbI0&amp;t=ffffffff9ce48191"
+            type="text/javascript"
+          ></script>
+          <script
+            src="/ScriptResource.axd?d=--GwAyvo6Mu32G12anjWow6Q-v8M4dTWeQGYDuc5oVlx8nfrd2PvyIhMK6jLeyNXy7nFpxJHxfQCneA0Yr6vsLj8q0tO3RgWBdzPRUwlO_Ggc3LghbUXVnGLZJ8MmC7Vqsq3WB5_l5o01di63MWXEQ5XYHY1&amp;t=ffffffff9ce48191"
+            type="text/javascript"
+          ></script>
+          <script
+            src="/ScriptResource.axd?d=B163rb9u0FWXQ7hAa7a5m3dH3ZqbmakxbT5yH5YyL6YMaCvW09zDZJbZAxJ84gvCJ2FX782XboatxE8OSJrgXGEGK3Ym915EFTpZU2bgiWxLjc_RhtV5Hwxq654ZhFdE-teqV_DNk2Z4h2xpUX7yRdmtfnQ4_x4bXMV-oo5CQlB4NriSD6H9TT4_3fBOUUHgzb7_Vg2&amp;t=ffffffff9ce48191"
+            type="text/javascript"
+          ></script>
+          <div class="aspNetHidden">
+            <input
+              type="hidden"
+              name="__VIEWSTATEGENERATOR"
+              id="__VIEWSTATEGENERATOR"
+              value="BB3126B1"
+            />
+            <input
+              type="hidden"
+              name="__VIEWSTATEENCRYPTED"
+              id="__VIEWSTATEENCRYPTED"
+              value=""
+            />
+          </div>
+          <input
+            type="hidden"
+            name="baseVariable"
+            value="vuZRB69odJx4bQoQqFjSZBQY-BGYbwiwK~4oOE3Fa7SbHsMZOzL6J1t6UPfqXCsTs8UJHSvvK243G2Fe8d~AasXNQ7lAcxzVHxRMrDAOIIem8olWN4QS~WjkMygJdPB-z"
+          /><input
+            type="hidden"
+            id="baseVarLogoutBtn"
+            name="baseVarLogoutBtn"
+            value="off"
+          />
+
+          <p class="sentence textArea">
+            会員登録したメールアドレスとパスワード、および画像に表示されている文字を入力してください。
+          </p>
+
+          <div class="inputArea">
+            <p class="mail">
+              <input
+                type="text"
+                name="MailAddress"
+                maxlength="256"
+                placeholder="メールアドレス(半角)"
+              />
+            </p>
+            <p class="pass">
+              <input
+                type="password"
+                name="Password"
+                maxlength="20"
+                placeholder="パスワード(半角)"
+              />
+            </p>
+          </div>
+
+          <div class="whtbg" width="100%" colspan="2">
+            <p class="tx-wht sentence2">
+              下の画像に表示されている文字を半角で入力してください。<br />画像に表示されている文字が読みにくい場合は、画像右側のボタンを押して再取得ができます。
+            </p>
+            <div align="left">
+              <script type="text/javascript">
+                //<![CDATA[
+                Sys.WebForms.PageRequestManager._initialize(
+                  "WebScriptManager2",
+                  "form1",
+                  [],
+                  [],
+                  [],
+                  90,
+                  ""
+                );
+                //]]>
+              </script>
+
+              <input
+                type="hidden"
+                id="WebCaptcha1_clientState"
+                name="WebCaptcha1_clientState"
+              />
+              <div
+                id="WebCaptcha1"
+                class="ig_TrendyControl igc_TrendyControl"
+                style="width: 227px; height: 90px"
+              >
+                <div class="igc_TrendyCaptchaImageArea">
+                  <img
+                    src="WebCaptchaImage.axd?guid=36974673-b1f8-4244-ac5f-e3145f6150da"
+                    title=""
+                    alt=""
+                    height="60"
+                    width="175"
+                    class="igc_TrendyCaptchaImage"
+                  /><input
+                    type="hidden"
+                    id="WebCaptcha1__editor_clientState"
+                    name="WebCaptcha1__editor_clientState"
+                  /><input
+                    title="{0}"
+                    id="WebCaptcha1__editor"
+                    autocomplete="off"
+                    readonly="readonly"
+                    name="WebCaptcha1__editor"
+                    maxlength="20"
+                    class="igc_TrendyCaptchaInput igte_TrendyEdit"
+                    type="text"
+                    style="
+                      border-color: Black;
+                      width: 170px;
+                      ime-mode: disabled;
+                      text-align: notset;
+                    "
+                  />
+                </div>
+                <div class="igc_TrendyRefreshAndAudioButtonsArea">
+                  <a data-ig="x:1521500783.0:mkr:RefreshButtonLink" href="#"
+                    ><img
+                      alt="画像の更新"
+                      data-ig="x:1521500783.1:mkr:RefreshButton"
+                      src="ig_res/Trendy/images/igc_RefreshButton.gif"
+                  /></a>
+                </div>
+                <div style="clear: left"></div>
+              </div>
+            </div>
+          </div>
+
+          <p class="lostPass">
+            <a
+              class="sentence"
+              href="javascript:StartApplication('https://www.mobilesuica.com/ka/pr/Guidance.aspx?returnId=SFRKALGPC02')"
+              >パスワードを忘れた方はこちら（パスワード再登録）</a
+            >
+          </p>
+          <p class="lostPass">
+            <a
+              class="sentence"
+              href="https://apfaq.mobilesuica.com/faq/show/2802"
+              target="_blank"
+              >退会・払いもどしをご希望の方はこちら</a
+            >
+          </p>
+          <p class="loginBtn ButtonBox">
+            <button name="LOGIN" value="ログイン" border="0">ログイン</button>
+          </p>
+
+          <table width="540" border="0" cellspacing="0" cellpadding="0">
+            <tr>
+              <td height="15">
+                <img src="/img/space.gif" width="1" height="15" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <table border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td></td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+
+          <script type="text/javascript">
+            //<![CDATA[
+            Sys.Application.add_init(function () {
+              $create(
+                Infragistics.Web.UI.WebTextEditor,
+                {
+                  id: "WebCaptcha1__editor",
+                  name: "WebCaptcha1__editor",
+                  props: [
+                    [
+                      [],
+                      {
+                        c: {
+                          uid: "WebCaptcha1$_editor",
+                          nt: "表示されている文字の入力",
+                          prop1: "",
+                          prop: "1,0,,20,1,1,,,3,1,,,,6,,200,,2038:2040:2032,igte_TrendyFocus,igte_TrendyHover,igte_TrendyNullText,",
+                        },
+                      },
+                    ],
+                    ,
+                    ,
+                    [],
+                  ],
+                },
+                null,
+                null,
+                $get("WebCaptcha1__editor")
+              );
+            });
+            Sys.Application.add_init(function () {
+              $create(
+                Infragistics.Web.UI.WebCaptcha,
+                {
+                  id: "WebCaptcha1",
+                  name: "WebCaptcha1",
+                  props: [
+                    [
+                      [,],
+                      {
+                        c: {
+                          cvf: false,
+                          uid: "WebCaptcha1",
+                          pmd: 0,
+                          fstsec: 10,
+                          cir: false,
+                          cirt: 600,
+                        },
+                      },
+                    ],
+                    ,
+                    ,
+                    ["AJAXResponseError:ErrorHandle"],
+                  ],
+                },
+                null,
+                null,
+                $get("WebCaptcha1")
+              );
+            });
+            //]]>
+          </script>
+        </form>
+        <form name="MSMenu" method="post"></form>
+      </div>
+
+      <div class="wrapper440 inputBox tabContents" id="tab_2">
+        <form
+          name="form2"
+          method="post"
+          action="https://my.jreast.co.jp/web/au/OutsideLoginForm.aspx"
+        >
+          <input
+            type="hidden"
+            name="OneTimeSessionUrl"
+            value="https://www.mobilesuica.com/ka/so/AuthAndGetScreen.aspx"
+          />
+          <input
+            type="hidden"
+            name="ReturnUrl"
+            value="https://www.mobilesuica.com/ka/lg/LoginForm.aspx?pguid=af60fc73-558f-460c-a2b1-d830c426f307"
+          />
+          <input
+            type="hidden"
+            name="ServiceUrl"
+            value="https://www.mobilesuica.com/index.aspx"
+          />
+          <input type="hidden" name="ServiceCode" value="3" />
+          <p class="sentence textArea">
+            My JR-EASTのIDとパスワードを入力してください。
+          </p>
+          <div class="inputArea">
+            <p class="mail">
+              <input
+                type="text"
+                name="CommonID"
+                maxlength="100"
+                placeholder="My JR-EAST ID(半角)"
+              />
+            </p>
+            <p class="pass">
+              <input
+                type="password"
+                name="Password"
+                maxlength="20"
+                placeholder="パスワード(半角)"
+              />
+            </p>
+          </div>
+
+          <p class="lostPass">
+            <a
+              class="sentence"
+              href="https://my.jreast.co.jp/web/ir/RenewPasswordRequestForm.aspx"
+              target="_blank"
+              >My JR-EASTのパスワードを忘れた方はこちら（パスワード再登録）</a
+            >
+          </p>
+          <p class="lostPass">
+            <a
+              class="sentence"
+              href="https://apfaq.mobilesuica.com/faq/show/2802"
+              target="_blank"
+              >退会・払いもどしをご希望の方はこちら</a
+            >
+          </p>
+          <div class="loginBtn ButtonBox">
+            <button name="MYLOGIN" value="ログイン" border="0">ログイン</button>
+            <p class="helpLink">
+              <a
+                href="http://www.jreast.co.jp/myjreast/"
+                target="_blank"
+                class="help"
+                >My JR-EAST とは</a
+              >
+            </p>
+          </div>
+
+          <table width="540" border="0" cellspacing="0" cellpadding="0">
+            <tr>
+              <td height="15">
+                <img src="/img/space.gif" width="1" height="15" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <table border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td></td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </form>
+      </div>
+    </div>
+    <br />
+    <!-- /メインコンテンツ -->
+    <!-- SSO埋込文字列 -->
+    <!--
+		msimp00000001
+		-->
+    <!-- /SSO埋込文字列 -->
+    <!-- JR東日本共通フッター -->
+    <script language="javascript">
+      <!--
+      footer();
+      // -->
+    </script>
+    <!-- /JR東日本共通フッター -->
+  </body>
+</html>

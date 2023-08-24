@@ -1,19 +1,12 @@
-use axum::{
-    extract::{Request, State},
-    http::{self, header},
-    middleware::Next,
-    response::Response,
-};
 use rand::distributions::{Alphanumeric, DistString};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex, OnceLock},
+    sync::{Mutex, OnceLock},
 };
+use tokio::sync::Mutex as AsyncMutex;
 
 static SESSION_STORE: OnceLock<Mutex<HashMap<String, Session>>> = OnceLock::new();
-
-const SESSION_ID_HEADER: &str = "x-session-id";
 
 #[derive(Clone, Debug, Default)]
 pub struct Session {
@@ -79,39 +72,4 @@ impl Session {
 
         return deserialized;
     }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct AppState {
-    pub session: Arc<Mutex<Session>>,
-}
-
-pub async fn session_middleware(
-    State(state): State<AppState>,
-    req: Request,
-    next: Next,
-) -> Response {
-    let session_id = req
-        .headers()
-        .get(SESSION_ID_HEADER)
-        .unwrap_or(&http::header::HeaderValue::from_static(""))
-        .to_str()
-        .ok()
-        .map(|sid| match sid {
-            "" => Session::new(),
-            _ => sid.to_string(),
-        })
-        .unwrap();
-
-    *state.session.lock().unwrap() = Session::get_session(&session_id);
-
-    // レスポンスここから
-    let mut response = next.run(req).await;
-
-    response.headers_mut().insert(
-        SESSION_ID_HEADER,
-        header::HeaderValue::from_str(&session_id).unwrap(),
-    );
-
-    response
 }
