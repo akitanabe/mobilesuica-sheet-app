@@ -1,8 +1,11 @@
-use axum::extract::State;
-use axum::response::Response;
 use axum::Form;
-use mobilesuica_sheet_app_server::HttpClient::{get_client, MobilesuicaCookies};
-use serde::Deserialize;
+use axum::{extract::State, Json};
+use mobilesuica_sheet_app_server::HttpClient::{
+    get_client, get_cookies, MobilesuicaCookies, BASE_URL,
+};
+use reqwest::header::{HeaderValue, CONTENT_TYPE};
+use scraper::{Html, Selector};
+use serde::{Deserialize, Serialize};
 
 use crate::AppState;
 use mobilesuica_sheet_app_server::MobilesuicaFormParams;
@@ -14,21 +17,75 @@ pub struct Payload {
     captcha: String,
 }
 
-pub async fn login(
+async fn login(
     client: &reqwest::Client,
+    action_url: String,
     form_params: &MobilesuicaFormParams,
-) -> Result<(), reqwest::Error> {
-    client
-        .post("http:://127.0.0.1/request")
-        .form(form_params)
+) -> Result<(bool, MobilesuicaCookies), reqwest::Error> {
+    let url = format!("{}{}", BASE_URL, action_url);
+
+    let form_body = form_params.serialize_into_sjis();
+
+    let response = client
+        .post(url)
+        .header(
+            CONTENT_TYPE,
+            HeaderValue::from_static("application/x-www-form-urlencoded"),
+        )
+        .body(form_body)
         .send()
         .await?;
 
-    Ok(())
+    let cookies = get_cookies(&response);
+    let html = response.text_with_charset("utf-8").await?;
+
+    let title = get_title(&html);
+
+    match title.as_str() {
+        "JR東日本：モバイルSuica＞会員メニュー" => Ok((true, cookies)),
+        _ => Ok((false, cookies)),
+    }
 }
 
-pub async fn handler(State(state): State<AppState>, payload: Form<Payload>) -> Response {
-    let (cookies, mobilesuica_form_params) = {
+fn get_title(html: &str) -> String {
+    let document = Html::parse_document(html);
+
+    let selector = Selector::parse("title").unwrap();
+
+    let title_element = document.select(&selector).next();
+
+    match title_element {
+        Some(element) => element
+            .text()
+            .map(move |s| s.to_string())
+            .collect::<String>(),
+        None => "".to_string(),
+    }
+}
+
+#[derive(Serialize, Debug)]
+pub struct AuthMobilesuica {
+    ok: bool,
+    result: AuthMobilesuicaResult,
+}
+
+#[derive(Serialize, Debug)]
+struct AuthMobilesuicaResult {
+    success: bool,
+    message: String,
+}
+
+impl AuthMobilesuica {
+    fn new(ok: bool, result: AuthMobilesuicaResult) -> Self {
+        AuthMobilesuica { ok, result }
+    }
+}
+
+pub async fn handler(
+    State(state): State<AppState>,
+    payload: Form<Payload>,
+) -> Json<AuthMobilesuica> {
+    let (cookies, mobilesuica_form_params, action_url) = {
         let session = state.session.lock().unwrap();
 
         let mut mobilesuica_form_params =
@@ -41,13 +98,56 @@ pub async fn handler(State(state): State<AppState>, payload: Form<Payload>) -> R
             .set_captcha(&payload.captcha);
 
         let cookies = session.get::<MobilesuicaCookies>("cookies");
+        let action_url = session.get::<String>("action_url");
 
-        (cookies, mobilesuica_form_params)
+        (cookies, mobilesuica_form_params, action_url)
     };
 
     let client = get_client(cookies).await.unwrap();
 
-    // let _result = login(&client, &mobilesuica_form_params).await;
+    let (success, auth_cookies) = login(&client, action_url, &mobilesuica_form_params)
+        .await
+        .unwrap();
 
-    Response::new("Hello, World!".into())
+    if success {
+        let mut session = state.session.lock().unwrap();
+        session.set("cookies", auth_cookies);
+    }
+
+    let message = match success {
+        true => "ログイン成功",
+        false => "ログイン失敗",
+    };
+    let auth_mobilesuica = AuthMobilesuica::new(
+        success,
+        AuthMobilesuicaResult {
+            success,
+            message: message.to_string(),
+        },
+    );
+
+    Json(auth_mobilesuica)
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+
+    #[test]
+    fn test_get_title() {
+        let html = r#"
+        <html>
+            <head>
+                <title>test</title>
+            </head>
+            <body>
+            </body>
+        </html>
+        "#;
+
+        let title = get_title(html);
+
+        assert_eq!(title, "test".to_string());
+    }
 }

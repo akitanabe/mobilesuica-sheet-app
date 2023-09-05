@@ -26,9 +26,24 @@ fn get_captcha_imageurl(html: &str) -> String {
     String::from(captcha_url)
 }
 
-pub async fn fetch_mobilesuica(
+fn get_action_url(html: &str) -> String {
+    let document = Html::parse_document(html);
+
+    let selector = Selector::parse("#form1").unwrap();
+
+    let form_element = document.select(&selector).next();
+
+    let action_url: &str = match form_element {
+        Some(element) => element.value().attr("action").unwrap_or(""),
+        None => "",
+    };
+
+    String::from(action_url)
+}
+
+async fn fetch_mobilesuica(
     client: &reqwest::Client,
-) -> Result<(MobilesuicaFormParams, MobilesuicaCookies, String), reqwest::Error> {
+) -> Result<(MobilesuicaFormParams, MobilesuicaCookies, String, String), reqwest::Error> {
     let response = client.get(BASE_URL).send().await?;
     let cookies = get_cookies(&response);
 
@@ -36,11 +51,12 @@ pub async fn fetch_mobilesuica(
     let mobilesuica_form_params = MobilesuicaFormParams::new(&html);
 
     let captcha_url = get_captcha_imageurl(&html);
+    let action_url = get_action_url(&html);
 
-    Ok((mobilesuica_form_params, cookies, captcha_url))
+    Ok((mobilesuica_form_params, cookies, captcha_url, action_url))
 }
 
-pub async fn download_captcha(
+async fn download_captcha(
     client: &reqwest::Client,
     captcha_url: &str,
 ) -> Result<Vec<u8>, reqwest::Error> {
@@ -58,13 +74,15 @@ pub async fn handler(State(state): State<AppState>) -> Response {
 
     let client = get_client(cookies_default).await.unwrap();
 
-    let (mobilesuica_form_params, cookies, captcha_url) = fetch_mobilesuica(&client).await.unwrap();
+    let (mobilesuica_form_params, cookies, captcha_url, action_url) =
+        fetch_mobilesuica(&client).await.unwrap();
 
     let captcha_image = download_captcha(&client, &captcha_url).await.unwrap();
 
     {
         let mut session = state.session.lock().unwrap();
 
+        session.set("action_url", action_url);
         session.set("mobilesuica_form_params", mobilesuica_form_params);
         session.set("cookies", cookies);
     }
