@@ -88,6 +88,7 @@ impl MobilesuicaFormParams {
         self
     }
 
+    // 各パラメータをSJISにしてURIエンコードする
     pub fn serialize_into_sjis(&self) -> String {
         [
             ("__EVENTARGUMENT", &self.__EVENTARGUMENT),
