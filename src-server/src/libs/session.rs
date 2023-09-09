@@ -4,7 +4,6 @@ use std::{
     collections::HashMap,
     sync::{Mutex, OnceLock},
 };
-use tokio::sync::Mutex as AsyncMutex;
 
 static SESSION_STORE: OnceLock<Mutex<HashMap<String, Session>>> = OnceLock::new();
 
@@ -68,8 +67,67 @@ impl Session {
         T: Default,
     {
         let serialzied = self.data.get(key).map_or("".to_string(), |v| v.clone());
+
+        if String::is_empty(&serialzied) {
+            return T::default();
+        }
+
         let deserialized: T = serde_json::from_str(&serialzied).unwrap_or_default();
 
         return deserialized;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_session_create() {
+        let session_id = Session::new();
+
+        let mut session = Session::get_session(&session_id);
+
+        session.set("test", "test");
+
+        let session = Session::get_session(&session_id);
+
+        assert_eq!(session.get::<String>("test"), "test");
+    }
+
+    #[test]
+    fn test_session_set() {
+        #[derive(Deserialize, Serialize, Default)]
+        struct Test {
+            pub prop: String,
+        }
+
+        let session_id = Session::new();
+
+        let mut session = Session::get_session(&session_id);
+
+        session.set(
+            "test_key",
+            Test {
+                prop: "test1".to_string(),
+            },
+        );
+
+        let test: Test = session.get::<Test>("test_key");
+
+        assert_eq!(test.prop, "test1");
+    }
+
+    #[test]
+    fn test_session_get_empty() {
+        let session_id = Session::new();
+
+        let mut session = Session::get_session(&session_id);
+
+        session.set("test", "test");
+
+        let session = Session::get_session(&session_id);
+
+        assert_eq!(session.get::<String>("test_empty"), "");
     }
 }
