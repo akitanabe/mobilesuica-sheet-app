@@ -5,7 +5,8 @@ use std::{
     sync::{Mutex, OnceLock},
 };
 
-static SESSION_STORE: OnceLock<Mutex<HashMap<String, Session>>> = OnceLock::new();
+type SessionStore = Mutex<HashMap<String, Session>>;
+static SESSION_STORE: OnceLock<SessionStore> = OnceLock::new();
 
 #[derive(Clone, Debug, Default)]
 pub struct Session {
@@ -18,9 +19,13 @@ fn genereate_session_id() -> String {
     Alphanumeric.sample_string(&mut rng, 32)
 }
 
+fn get_session_store<'a>() -> &'a SessionStore {
+    SESSION_STORE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
 impl Session {
     pub fn new() -> String {
-        let session_store = SESSION_STORE.get_or_init(|| Mutex::new(HashMap::new()));
+        let session_store = get_session_store();
 
         let session_id = genereate_session_id();
 
@@ -35,15 +40,18 @@ impl Session {
         session_id
     }
 
-    pub fn get_session(session_id: &str) -> Session {
-        SESSION_STORE
-            .get()
-            .unwrap()
-            .lock()
-            .unwrap()
-            .get(session_id)
-            .unwrap()
-            .clone()
+    pub fn get_session(session_id: &str) -> Option<Session> {
+        let session_store = get_session_store().lock().unwrap();
+        let session = session_store.get(session_id);
+
+        match session {
+            Some(session) => Some(session.clone()),
+            None => None,
+        }
+    }
+
+    pub fn has_session(session_id: &str) -> bool {
+        get_session_store().lock().unwrap().contains_key(session_id)
     }
 
     pub fn set<T>(&mut self, key: &str, value: T) -> ()
@@ -53,9 +61,7 @@ impl Session {
         let serialized = serde_json::to_string(&value).unwrap();
         self.data.insert(key.to_string(), serialized);
 
-        SESSION_STORE
-            .get()
-            .unwrap()
+        get_session_store()
             .lock()
             .unwrap()
             .insert(self.id.clone(), self.clone());
@@ -76,6 +82,12 @@ impl Session {
 
         return deserialized;
     }
+
+    pub fn clear(&mut self) -> () {
+        self.data.clear();
+
+        get_session_store().lock().unwrap().remove(&self.id);
+    }
 }
 
 #[cfg(test)]
@@ -86,11 +98,11 @@ mod test {
     fn test_session_create() {
         let session_id = Session::new();
 
-        let mut session = Session::get_session(&session_id);
+        let mut session = Session::get_session(&session_id).unwrap();
 
         session.set("test", "test");
 
-        let session = Session::get_session(&session_id);
+        let session = Session::get_session(&session_id).unwrap();
 
         assert_eq!(session.get::<String>("test"), "test");
     }
@@ -104,7 +116,7 @@ mod test {
 
         let session_id = Session::new();
 
-        let mut session = Session::get_session(&session_id);
+        let mut session = Session::get_session(&session_id).unwrap();
 
         session.set(
             "test_key",
@@ -122,12 +134,34 @@ mod test {
     fn test_session_get_empty() {
         let session_id = Session::new();
 
-        let mut session = Session::get_session(&session_id);
+        let mut session = Session::get_session(&session_id).unwrap();
 
         session.set("test", "test");
 
-        let session = Session::get_session(&session_id);
+        let session = Session::get_session(&session_id).unwrap();
 
         assert_eq!(session.get::<String>("test_empty"), "");
+    }
+
+    #[test]
+    fn test_session_clear() {
+        let session_id = Session::new();
+
+        let mut session = Session::get_session(&session_id).unwrap();
+
+        session.set("test", "test");
+        session.clear();
+
+        let cleared_session = Session::get_session(&session_id).expect("session is cleared");
+
+        assert_eq!(cleared_session.get::<String>("test"), "session is cleared");
+    }
+
+    #[test]
+    fn test_session_has() {
+        let session_id = Session::new();
+
+        assert_eq!(Session::has_session(&session_id), true);
+        assert_eq!(Session::has_session(""), false);
     }
 }
