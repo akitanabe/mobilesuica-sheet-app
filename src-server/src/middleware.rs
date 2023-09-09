@@ -20,13 +20,13 @@ pub async fn session_middleware(
         .unwrap_or(&http::header::HeaderValue::from_static(""))
         .to_str()
         .ok()
-        .map(|sid| match sid {
-            "" => Session::new(),
-            _ => sid.to_string(),
+        .map(|sid| match Session::has_session(sid) {
+            true => sid.to_string(),
+            false => Session::new(),
         })
         .unwrap();
 
-    *state.session.lock().unwrap() = Session::get_session(&session_id);
+    *state.session.lock().unwrap() = Session::get_session(&session_id).expect("session is none");
 
     // レスポンスここから
     let mut response = next.run(req).await;
