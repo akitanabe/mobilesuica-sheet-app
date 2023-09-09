@@ -2,43 +2,33 @@ use std::collections::HashMap;
 
 use axum::extract::State;
 use axum::{body::Body, response::Response};
+use mobilesuica_sheet_app_server::HtmlDocument;
 use mobilesuica_sheet_app_server::{
     HttpClient::{get_client, get_cookies, MobilesuicaCookies, BASE_URL},
     MobilesuicaFormParams,
 };
 use reqwest::StatusCode;
-use scraper::{Html, Selector};
 
 use crate::store::AppState;
 
 fn get_captcha_imageurl(html: &str) -> String {
-    let document = Html::parse_document(html);
+    let document = HtmlDocument::new(html);
 
-    let selector = Selector::parse(".igc_TrendyCaptchaImage").unwrap();
-
-    let captcha_element = document.select(&selector).next();
-
-    let captcha_url: &str = match captcha_element {
+    match document.query_selector(".igc_TrendyCaptchaImage") {
         Some(element) => element.value().attr("src").unwrap_or(""),
         None => "",
-    };
-
-    String::from(captcha_url)
+    }
+    .to_string()
 }
 
 fn get_action_url(html: &str) -> String {
-    let document = Html::parse_document(html);
+    let document = HtmlDocument::new(html);
 
-    let selector = Selector::parse("#form1").unwrap();
-
-    let form_element = document.select(&selector).next();
-
-    let action_url: &str = match form_element {
+    match document.get_element_by_id("form1") {
         Some(element) => element.value().attr("action").unwrap_or(""),
         None => "",
-    };
-
-    String::from(action_url)
+    }
+    .to_string()
 }
 
 async fn fetch_mobilesuica(

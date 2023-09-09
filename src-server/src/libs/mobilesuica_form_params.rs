@@ -1,5 +1,7 @@
+use crate::HtmlDocument;
+
 use encoding_rs::SHIFT_JIS;
-use scraper::{Html, Selector};
+
 use serde::{Deserialize, Serialize};
 
 // SJISにしてURIエンコードする
@@ -37,14 +39,12 @@ pub struct MobilesuicaFormParams {
 
 impl MobilesuicaFormParams {
     pub fn new(html: &str) -> Self {
-        let document = Html::parse_document(html);
+        let document = HtmlDocument::new(html);
 
         let get_input_value = |name: &str| {
-            let selector = Selector::parse(&format!("input[name='{}']", name)).unwrap();
+            let selector = format!("input[name='{}']", name);
 
-            let element = &document.select(&selector).next();
-
-            match element {
+            match &document.query_selector(&selector) {
                 Some(element) => element.value().attr("value").unwrap_or(""),
                 None => "",
             }

@@ -4,11 +4,10 @@ use mobilesuica_sheet_app_server::HttpClient::{
     get_client, get_cookies, MobilesuicaCookies, BASE_URL,
 };
 use reqwest::header::{HeaderValue, CONTENT_TYPE};
-use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 
 use crate::AppState;
-use mobilesuica_sheet_app_server::MobilesuicaFormParams;
+use mobilesuica_sheet_app_server::{HtmlDocument, MobilesuicaFormParams};
 
 #[derive(Deserialize, Debug)]
 pub struct Payload {
@@ -48,17 +47,10 @@ async fn login(
 }
 
 fn get_title(html: &str) -> String {
-    let document = Html::parse_document(html);
+    let document = HtmlDocument::new(html);
 
-    let selector = Selector::parse("title").unwrap();
-
-    let title_element = document.select(&selector).next();
-
-    match title_element {
-        Some(element) => element
-            .text()
-            .map(move |s| s.to_string())
-            .collect::<String>(),
+    match document.query_selector("title") {
+        Some(element) => element.text().collect::<String>(),
         None => "".to_string(),
     }
 }
