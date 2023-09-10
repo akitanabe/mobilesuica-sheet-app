@@ -67,20 +67,15 @@ impl Session {
             .insert(self.id.clone(), self.clone());
     }
 
-    pub fn get<T>(&self, key: &str) -> T
+    pub fn get<T>(&self, key: &str) -> Option<T>
     where
         T: for<'a> Deserialize<'a>,
-        T: Default,
     {
-        let serialzied = self.data.get(key).map_or("".to_string(), |v| v.clone());
+        let serialzied = self.data.get(key)?.clone();
 
-        if String::is_empty(&serialzied) {
-            return T::default();
-        }
+        let deserialized: T = serde_json::from_str(&serialzied).ok()?;
 
-        let deserialized: T = serde_json::from_str(&serialzied).unwrap_or_default();
-
-        return deserialized;
+        return Some(deserialized);
     }
 
     pub fn clear(&mut self) -> () {
@@ -92,6 +87,7 @@ impl Session {
 
 #[cfg(test)]
 mod test {
+
     use super::*;
 
     #[test]
@@ -102,9 +98,9 @@ mod test {
 
         session.set("test", "test");
 
-        let session = Session::get_session(&session_id).unwrap();
+        let created_session = Session::get_session(&session_id).unwrap();
 
-        assert_eq!(session.get::<String>("test"), "test");
+        assert_eq!(created_session.get::<String>("test").unwrap(), "test");
     }
 
     #[test]
@@ -125,12 +121,13 @@ mod test {
             },
         );
 
-        let test: Test = session.get::<Test>("test_key");
+        let test: Test = session.get::<Test>("test_key").unwrap();
 
         assert_eq!(test.prop, "test1");
     }
 
     #[test]
+    #[should_panic]
     fn test_session_get_empty() {
         let session_id = Session::new();
 
@@ -140,10 +137,11 @@ mod test {
 
         let session = Session::get_session(&session_id).unwrap();
 
-        assert_eq!(session.get::<String>("test_empty"), "");
+        session.get::<String>("test2").unwrap();
     }
 
     #[test]
+    #[should_panic]
     fn test_session_clear() {
         let session_id = Session::new();
 
@@ -152,9 +150,9 @@ mod test {
         session.set("test", "test");
         session.clear();
 
-        let cleared_session = Session::get_session(&session_id).expect("session is cleared");
+        let cleared_session = Session::get_session(&session_id);
 
-        assert_eq!(cleared_session.get::<String>("test"), "session is cleared");
+        cleared_session.unwrap();
     }
 
     #[test]
