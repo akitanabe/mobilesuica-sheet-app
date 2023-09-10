@@ -20,7 +20,7 @@ fn encode_uri_from_sjis(text: &str) -> String {
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq)]
 pub struct MobilesuicaFormParams {
     __EVENTARGUMENT: String,
     __EVENTTARGET: String,
