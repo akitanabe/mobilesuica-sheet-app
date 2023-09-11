@@ -133,37 +133,40 @@ pub async fn handler(
         .set_password(&payload.password)
         .set_captcha(&payload.captcha);
 
-    let result: Result<(bool, MobilesuicaCookies), AuthError> = {
-        let client = get_client(cookies).await;
-
-        if client.is_ok() {
-            login(&client.unwrap(), action_url, &mobilesuica_form_params)
-                .await
-                .map_err(|_| AuthError::RequestFailed)
-        } else {
-            Err(AuthError::RequestFailed)
+    let client = match get_client(cookies).await {
+        Ok(client) => client,
+        Err(_) => {
+            let message = get_auth_error_message(AuthError::RequestFailed);
+            return Json(create_auth_response(false, message));
         }
     };
 
-    let (success, auth_cookies) = match result {
-        Ok((success, cookies)) => (success, cookies),
+    let result: Result<(bool, MobilesuicaCookies), AuthError> =
+        login(&client, action_url, &mobilesuica_form_params)
+            .await
+            .map_err(|_| AuthError::RequestFailed);
+
+    let (success, message) = match result {
+        Ok((success, auth_cookies)) => {
+            if success {
+                let mut session = state.session.lock().unwrap();
+                session.set("auth_cookies", auth_cookies);
+            }
+
+            let message = match success {
+                true => "ログイン成功".to_string(),
+                false => get_auth_error_message(AuthError::LoginFailed),
+            };
+
+            (success, message)
+        }
         Err(e) => {
             let message = get_auth_error_message(e);
             return Json(create_auth_response(false, message));
         }
     };
 
-    if success {
-        let mut session = state.session.lock().unwrap();
-        session.set("auth_cookies", auth_cookies);
-    }
-
-    let message = match success {
-        true => "ログイン成功".to_string(),
-        false => get_auth_error_message(AuthError::LoginFailed),
-    };
-
-    let auth_mobilesuica = create_auth_response(true, message);
+    let auth_mobilesuica = create_auth_response(success, message);
 
     Json(auth_mobilesuica)
 }
