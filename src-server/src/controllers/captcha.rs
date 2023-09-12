@@ -11,6 +11,20 @@ use reqwest::StatusCode;
 
 use crate::store::AppState;
 
+#[derive(Debug, PartialEq)]
+enum CaptchaError {
+    FetchFailed,
+    DownloadFailed,
+}
+
+fn get_captcha_error_message(error: CaptchaError) -> String {
+    match error {
+        CaptchaError::FetchFailed => "キャプチャ画像の取得に失敗しました。",
+        CaptchaError::DownloadFailed => "キャプチャ画像のダウンロードに失敗しました。",
+    }
+    .to_string()
+}
+
 fn get_captcha_imageurl(html: &str) -> String {
     let document = HtmlDocument::new(html);
 
@@ -62,24 +76,47 @@ async fn download_captcha(
 pub async fn handler(State(state): State<AppState>) -> Response {
     let cookies_default: MobilesuicaCookies = HashMap::new();
 
-    let client = get_client(cookies_default).await.unwrap();
+    let client = match get_client(cookies_default).await {
+        Ok(client) => client,
+        Err(_) => {
+            return Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(Body::from("Internal Server Error"))
+                .unwrap();
+        }
+    };
 
-    let (mobilesuica_form_params, cookies, captcha_url, action_url) =
-        fetch_mobilesuica(&client).await.unwrap();
+    let result: Result<Vec<u8>, CaptchaError> = (|| async {
+        let (mobilesuica_form_params, cookies, captcha_url, action_url) =
+            fetch_mobilesuica(&client)
+                .await
+                .map_err(|_| CaptchaError::FetchFailed)?;
 
-    let captcha_image = download_captcha(&client, &captcha_url).await.unwrap();
+        let captcha_image = download_captcha(&client, &captcha_url)
+            .await
+            .map_err(|_| CaptchaError::DownloadFailed)?;
 
-    {
-        let mut session = state.session.lock().unwrap();
+        {
+            let mut session = state.session.lock().unwrap();
 
-        session.set("action_url", action_url);
-        session.set("mobilesuica_form_params", mobilesuica_form_params);
-        session.set("cookies", cookies);
+            session.set("action_url", action_url);
+            session.set("mobilesuica_form_params", mobilesuica_form_params);
+            session.set("cookies", cookies);
+        }
+
+        Ok(captcha_image)
+    })()
+    .await;
+
+    match result {
+        Ok(captcha_image) => Response::builder()
+            .status(StatusCode::OK)
+            .header("Content-Type", "image/gif")
+            .body(Body::from(captcha_image)),
+
+        Err(e) => Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(Body::from(get_captcha_error_message(e))),
     }
-
-    Response::builder()
-        .status(StatusCode::OK)
-        .header("Content-Type", "image/gif")
-        .body(Body::from(captcha_image))
-        .unwrap()
+    .unwrap()
 }
