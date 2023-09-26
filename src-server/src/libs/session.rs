@@ -56,15 +56,24 @@ impl Session {
     }
 
     pub fn get_session(session_id: &str) -> Option<Session> {
-        let mut session_store = get_session_store().lock().unwrap();
-        let session = session_store.get(session_id)?;
+        // セッションストアのロックで期限が更新できなくなるため
+        // session_storeの所有権を放棄するためにスコープを分ける
+        let mut session = {
+            let mut session_store = get_session_store().lock().unwrap();
+            let session = session_store.get(session_id)?;
 
-        if session.is_expired() {
-            clear_session(&mut session_store, session_id);
-            return None;
-        }
+            if session.is_expired() {
+                clear_session(&mut session_store, session_id);
+                return None;
+            }
+            session.clone()
+        };
 
-        Some(session.clone())
+        // セッションの有効期限を更新
+        session.update_expired_at();
+        session.save();
+
+        Some(session)
     }
 
     pub fn has_session(session_id: &str) -> bool {
@@ -107,10 +116,7 @@ impl Session {
         let serialized = serde_json::to_string(&value).unwrap();
         self.data.insert(key.to_string(), serialized);
 
-        get_session_store()
-            .lock()
-            .unwrap()
-            .insert(self.id.clone(), self.clone());
+        self.save();
     }
 
     pub fn get<T>(&self, key: &str) -> Option<T>
@@ -122,6 +128,13 @@ impl Session {
         let deserialized: T = serde_json::from_str(&serialzied).ok()?;
 
         return Some(deserialized);
+    }
+
+    pub fn save(&self) -> () {
+        get_session_store()
+            .lock()
+            .unwrap()
+            .insert(self.id.clone(), self.clone());
     }
 
     pub fn clear(&mut self) -> () {
@@ -138,6 +151,10 @@ impl Session {
         }
 
         false
+    }
+
+    pub fn update_expired_at(&mut self) -> () {
+        self.expired_at = (chrono::Local::now().timestamp() as u64) + SESSION_EXPIRED_TIME;
     }
 }
 
@@ -226,12 +243,50 @@ mod test {
         let mut session = Session::get_session(&session_id).unwrap();
 
         session.set("test", "test");
-        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+        // GCが行われると全ての期限切れSessionが廃棄されてしまうので他のテストとの兼ね合いで3秒待つ
+        tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
 
         Session::gc();
 
         let session = Session::get_session(&session_id);
 
         assert_eq!(session.is_none(), true);
+    }
+
+    #[tokio::test]
+    async fn test_session_get_update_expired_at() {
+        let session_id = Session::new();
+
+        let mut session = Session::get_session(&session_id).unwrap();
+
+        session.set("test", "test");
+        // 1秒経過時には期限内なので更新されている
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+        let session = Session::get_session(&session_id);
+
+        assert_eq!(session.is_some(), true);
+
+        // 2秒経過時には期限外なので更新されていない
+        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+        let session = Session::get_session(&session_id);
+
+        assert_eq!(session.is_none(), true);
+    }
+
+    #[tokio::test]
+    async fn test_session_update_expired_at() {
+        let session_id = Session::new();
+
+        let mut session = Session::get_session(&session_id).unwrap();
+
+        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+
+        session.update_expired_at();
+        session.save();
+
+        let session = Session::get_session(&session_id);
+
+        assert_eq!(session.is_some(), true);
     }
 }
