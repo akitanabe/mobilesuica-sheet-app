@@ -9,6 +9,7 @@ edition = "2021"
 axum = { git = "https://github.com/tokio-rs/axum.git", branch = "main", version = "0.6.16", features = [
     "macros",
 ] }
+chrono = "0.4.30"
 encoding_rs = "0.8.32"
 rand = "0.8.5"
 reqwest = { version = "0.11.18", features = ["stream", "cookies"] }

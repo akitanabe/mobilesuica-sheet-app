@@ -2,16 +2,22 @@ use rand::distributions::{Alphanumeric, DistString};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    sync::{Mutex, OnceLock},
+    sync::{Mutex, MutexGuard, OnceLock},
 };
 
 type SessionStore = Mutex<HashMap<String, Session>>;
 static SESSION_STORE: OnceLock<SessionStore> = OnceLock::new();
 
+static SESSION_EXPIRED_TIME: u64 = match cfg!(test) {
+    true => 1,                 // テスト時は1秒
+    false => 60 * 60 * 24 * 1, // 本番時は1日
+};
+
 #[derive(Clone, Debug, Default)]
 pub struct Session {
     id: String,
     data: HashMap<String, String>,
+    expired_at: u64,
 }
 
 fn genereate_session_id() -> String {
@@ -23,17 +29,26 @@ fn get_session_store<'a>() -> &'a SessionStore {
     SESSION_STORE.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
+fn clear_session(session_store: &mut MutexGuard<HashMap<String, Session>>, session_id: &str) -> () {
+    if let Some(session) = session_store.remove(session_id) {
+        drop(session);
+    }
+}
+
 impl Session {
     pub fn new() -> String {
         let session_store = get_session_store();
 
         let session_id = genereate_session_id();
 
+        let expired_at = (chrono::Local::now().timestamp() as u64) + SESSION_EXPIRED_TIME;
+
         session_store.lock().unwrap().insert(
             session_id.clone(),
             Session {
                 id: session_id.clone(),
                 data: HashMap::new(),
+                expired_at,
             },
         );
 
@@ -41,17 +56,48 @@ impl Session {
     }
 
     pub fn get_session(session_id: &str) -> Option<Session> {
-        let session_store = get_session_store().lock().unwrap();
-        let session = session_store.get(session_id);
+        let mut session_store = get_session_store().lock().unwrap();
+        let session = session_store.get(session_id)?;
 
-        match session {
-            Some(session) => Some(session.clone()),
-            None => None,
+        if session.is_expired() {
+            clear_session(&mut session_store, session_id);
+            return None;
         }
+
+        Some(session.clone())
     }
 
     pub fn has_session(session_id: &str) -> bool {
-        get_session_store().lock().unwrap().contains_key(session_id)
+        let mut session_store = get_session_store().lock().unwrap();
+
+        if let Some(session) = session_store.get(session_id) {
+            if session.is_expired() {
+                clear_session(&mut session_store, session_id);
+                return false;
+            }
+
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn gc() -> () {
+        {
+            let session_store = get_session_store().lock().unwrap();
+
+            session_store.keys().cloned().collect::<Vec<String>>()
+        }
+        .iter()
+        .for_each(|session_id| {
+            let mut session_store = get_session_store().try_lock().unwrap();
+
+            if let Some(session) = session_store.get(session_id) {
+                if session.is_expired() {
+                    clear_session(&mut session_store, session_id);
+                }
+            }
+        });
     }
 
     pub fn set<T>(&mut self, key: &str, value: T) -> ()
@@ -79,9 +125,19 @@ impl Session {
     }
 
     pub fn clear(&mut self) -> () {
-        self.data.clear();
+        if let Ok(mut session_store) = get_session_store().try_lock() {
+            clear_session(&mut session_store, &self.id);
+        }
+    }
 
-        get_session_store().lock().unwrap().remove(&self.id);
+    pub fn is_expired(&self) -> bool {
+        let time = chrono::Local::now().timestamp() as u64;
+
+        if self.expired_at < time {
+            return true;
+        }
+
+        false
     }
 }
 
@@ -161,5 +217,21 @@ mod test {
 
         assert_eq!(Session::has_session(&session_id), true);
         assert_eq!(Session::has_session(""), false);
+    }
+
+    #[tokio::test]
+    async fn test_session_gc() {
+        let session_id = Session::new();
+
+        let mut session = Session::get_session(&session_id).unwrap();
+
+        session.set("test", "test");
+        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+
+        Session::gc();
+
+        let session = Session::get_session(&session_id);
+
+        assert_eq!(session.is_none(), true);
     }
 }
